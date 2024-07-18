@@ -11,6 +11,8 @@ const path = require('path');
 const Post = require('./models/Post');
 const secret = 'abcdefgh';
 
+port= process.env.PORT || 4000;
+
 app.use(cors({ credentials: true, origin: 'http://localhost:5173' }));
 app.use(express.json());
 app.use(cookieparser());
@@ -143,6 +145,6 @@ app.put('/post/:id', upload.single('file'), (req, res) => {
     });
 });
 
-app.listen(4000, () => {
+app.listen(port, () => {
     console.log("server running");
 });
