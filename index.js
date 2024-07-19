@@ -11,15 +11,18 @@ const path = require('path');
 const Post = require('./models/Post');
 const secret = 'abcdefgh';
 
-port= process.env.PORT || 4000;
+port=process.env.PORT || 4000;
 
 app.use(cors({ credentials: true, origin: 'http://localhost:5173' }));
 app.use(express.json());
 app.use(cookieparser());
-mongoose.connect("mongodb://localhost:27017/mern-blog", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
+mongoose.connect('mongodb+srv://vyshnavi:vyshnavi%40123@blog.qgwqbwm.mongodb.net/blog?retryWrites=true&w=majority')
+    .then(() => {
+        console.log("Connected to the database!");
+    })
+    .catch((error) => {
+        console.error("Database connection error:", error);
+    });
 
 app.post('/register', async (req, res) => {
     const { Username, Password } = req.body;
