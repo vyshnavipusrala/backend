@@ -50,7 +50,7 @@ app.post('/login', async (req, res) => {
                     console.error('Error signing token:', err);
                     throw err;
                 }
-                res.cookie('token', token).json('ok');
+                res.cookie('token', token, { httpOnly: true }).json('ok');
             });
         } else {
             res.status(400).json('wrong credentials');
@@ -76,7 +76,7 @@ app.get('/profile', (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-    res.cookie('token', '').json('ok');
+    res.cookie('token', '', { httpOnly: true }).json('ok');
 });
 
 const storage = multer.diskStorage({
