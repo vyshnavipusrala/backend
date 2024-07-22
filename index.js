@@ -18,7 +18,7 @@ app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
 app.use(express.json());
 app.use(cookieparser());
 
-mongoose.connect(process.env.MONGO_URI, {
+mongoose.connect('mongodb+srv://vyshnavi:vyshnavi%40123@blog.qgwqbwm.mongodb.net/blog?retryWrites=true&w=majority', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => {
