@@ -1,37 +1,37 @@
 const express = require('express');
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const app = express();
-const cors = require('cors');
-const User = require('./models/User');
 const jwt = require('jsonwebtoken');
-const cookieparser = require("cookie-parser");
+const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const path = require('path');
+const cors = require('cors');
+
+const app = express();
+const secret = 'abcdefgh'; // Consider using environment variables for secrets
+
+// Models
+const User = require('./models/User');
 const Post = require('./models/Post');
-const secret = 'abcdefgh';
 
-const port = process.env.PORT || 4000;
-
+// Middleware
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
 app.use(express.json());
-app.use(cookieparser());
+app.use(cookieParser());
 
+// Connect to MongoDB
 mongoose.connect('mongodb+srv://vyshnavi:vyshnavi%40123@blog.qgwqbwm.mongodb.net/blog?retryWrites=true&w=majority')
-    .then(() => {
-        console.log("Connected to the database!");
-    })
-    .catch((error) => {
-        console.error("Database connection error:", error);
-    });
+    .then(() => console.log("Connected to the database!"))
+    .catch((error) => console.error("Database connection error:", error));
 
+// Routes
 app.post('/register', async (req, res) => {
     const { Username, Password } = req.body;
     try {
         const userDoc = await User.create({ Username, password: bcrypt.hashSync(Password, 10) });
         res.json(userDoc);
     } catch (e) {
-        console.error('Error during registration:', e);
+        console.error('Registration error:', e);
         res.status(400).json(e);
     }
 });
@@ -48,15 +48,15 @@ app.post('/login', async (req, res) => {
             jwt.sign({ userName, id: userDoc._id }, secret, {}, (err, token) => {
                 if (err) {
                     console.error('Error signing token:', err);
-                    throw err;
+                    return res.status(500).json('Server error');
                 }
-                res.cookie('token', token, { httpOnly: true }).json('ok');
+                res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'None' }).json('ok');
             });
         } else {
             res.status(400).json('wrong credentials');
         }
     } catch (e) {
-        console.error('Error during login:', e);
+        console.error('Login error:', e);
         res.status(400).json(e);
     }
 });
@@ -66,9 +66,9 @@ app.get('/profile', (req, res) => {
     if (!token) {
         return res.status(401).json({ error: 'Token missing' });
     }
-    jwt.verify(token, secret, (err, info) => {
+    jwt.verify(token, secret, {}, (err, info) => {
         if (err) {
-            console.error('JWT verification error:', err);
+            console.error('Token verification failed:', err);
             return res.status(401).json({ error: 'Invalid token' });
         }
         res.json(info);
@@ -76,9 +76,10 @@ app.get('/profile', (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-    res.cookie('token', '', { httpOnly: true }).json('ok');
+    res.cookie('token', '', { httpOnly: true, secure: false, sameSite: 'None' }).json('ok');
 });
 
+// Multer setup for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
@@ -93,14 +94,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.post('/post', upload.single('file'), (req, res) => {
     const { token } = req.cookies;
-    if (!token) {
-        return res.status(401).json('Invalid token');
-    }
     jwt.verify(token, secret, {}, async (err, info) => {
-        if (err) {
-            console.error('JWT verification error:', err);
-            return res.status(401).json('Invalid token');
-        }
+        if (err) return res.status(401).json('Invalid token');
         const { title, summary, content } = req.body;
         const post = new Post({
             title,
@@ -147,21 +142,15 @@ app.get('/post/:id', async (req, res) => {
         const postDoc = await Post.findById(id).populate('author', ['Username']);
         res.json(postDoc);
     } catch (error) {
-        console.error('Error fetching post by ID:', error);
+        console.error('Error fetching post:', error);
         res.status(400).json(error);
     }
 });
 
 app.put('/post/:id', upload.single('file'), (req, res) => {
     const { token } = req.cookies;
-    if (!token) {
-        return res.status(401).json('Invalid token');
-    }
     jwt.verify(token, secret, {}, async (err, info) => {
-        if (err) {
-            console.error('JWT verification error:', err);
-            return res.status(401).json('Invalid token');
-        }
+        if (err) return res.status(401).json('Invalid token');
         const { id } = req.params;
         const { title, summary, content } = req.body;
         const postUpdate = {
@@ -184,12 +173,7 @@ app.put('/post/:id', upload.single('file'), (req, res) => {
     });
 });
 
-// Global error handler
-app.use((err, req, res, next) => {
-    console.error('Unexpected error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-});
-
+const port = process.env.PORT || 4000;
 app.listen(port, () => {
     console.log("Server running on port", port);
 });
